@@ -5,7 +5,7 @@ CRM para operações de social media: clientes, permissões por designer, calend
 ## Stack de produção
 
 - Next.js 16 (App Router) + React 19
-- Supabase Auth (e-mail e senha), Postgres com RLS e Storage privado
+- Supabase Auth (Google OAuth, com e-mail/senha opcional), Postgres com RLS e Storage privado
 - Vercel para build e hospedagem
 
 ## Configuração local
@@ -15,6 +15,14 @@ CRM para operações de social media: clientes, permissões por designer, calend
 3. Execute `npm ci` e `npm run dev`.
 
 O schema completo está em `supabase/migrations/20260831120000_inst_crm.sql` e já foi aplicado ao projeto de produção. O bucket privado `post-assets` guarda os arquivos originais; o acesso é validado pelas políticas RLS.
+
+## Login com Google
+
+No Supabase, abra **Authentication → Providers → Google**, ative o provedor e informe o Client ID e Client Secret criados no Google Cloud. No Google Cloud, adicione como URI de redirecionamento autorizada:
+
+`https://dqwqnnqkasrnimqurpra.supabase.co/auth/v1/callback`
+
+Depois do deploy, adicione também o domínio da Vercel em **Authentication → URL Configuration → Redirect URLs**, por exemplo `https://seu-projeto.vercel.app/auth/callback`.
 
 ## Primeiro acesso
 

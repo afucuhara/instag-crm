@@ -6,6 +6,15 @@ import { createClient } from "@/lib/supabase/client";
 export function LoginForm() {
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [error, setError] = useState(""); const [message, setMessage] = useState(""); const [loading, setLoading] = useState(false);
+  async function signInWithGoogle() {
+    setError(""); setMessage(""); setLoading(true);
+    const supabase = createClient();
+    const { error: oauthError } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    });
+    if (oauthError) { setError(oauthError.message); setLoading(false); }
+  }
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault(); setError(""); setMessage(""); setLoading(true);
     const form = new FormData(event.currentTarget); const email = String(form.get("email") ?? ""); const password = String(form.get("password") ?? ""); const name = String(form.get("name") ?? "");
@@ -16,5 +25,5 @@ export function LoginForm() {
     else window.location.assign("/");
     setLoading(false);
   }
-  return <form className="auth-form" onSubmit={submit}>{mode === "signup" && <label className="field"><span>Nome completo</span><input name="name" required placeholder="Seu nome"/></label>}<label className="field"><span>E-mail</span><input name="email" type="email" required placeholder="voce@email.com"/></label><label className="field"><span>Senha</span><input name="password" type="password" minLength={8} required placeholder="Mínimo de 8 caracteres"/></label>{error&&<p className="auth-error">{error}</p>}{message&&<p className="auth-message">{message}</p>}<button className="login-button" disabled={loading}>{loading?"Aguarde...":mode==="login"?"Entrar":"Criar conta"}<span>→</span></button><button type="button" className="auth-switch" onClick={()=>{setMode(mode==="login"?"signup":"login");setError("");setMessage("")}}>{mode==="login"?"Ainda não tenho acesso":"Já tenho uma conta"}</button></form>;
+  return <div className="auth-form"><button type="button" className="google-button" onClick={()=>void signInWithGoogle()} disabled={loading}><span className="google-mark">G</span>Continuar com Google</button><div className="auth-divider"><span>ou use e-mail e senha</span></div><form onSubmit={submit}>{mode === "signup" && <label className="field"><span>Nome completo</span><input name="name" required placeholder="Seu nome"/></label>}<label className="field"><span>E-mail</span><input name="email" type="email" required placeholder="voce@email.com"/></label><label className="field"><span>Senha</span><input name="password" type="password" minLength={8} required placeholder="Mínimo de 8 caracteres"/></label>{error&&<p className="auth-error">{error}</p>}{message&&<p className="auth-message">{message}</p>}<button className="login-button" disabled={loading}>{loading?"Aguarde...":mode==="login"?"Entrar":"Criar conta"}<span>→</span></button><button type="button" className="auth-switch" onClick={()=>{setMode(mode==="login"?"signup":"login");setError("");setMessage("")}}>{mode==="login"?"Ainda não tenho acesso":"Já tenho uma conta"}</button></form></div>;
 }
