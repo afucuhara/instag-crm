@@ -153,6 +153,38 @@ drop policy if exists posts_designer_select on public.posts;
 create policy posts_designer_select on public.posts for select to authenticated using (designer_id = (select auth.uid()) or exists (select 1 from public.client_members cm where cm.client_id = posts.client_id and cm.user_id = (select auth.uid())));
 drop policy if exists posts_designer_insert on public.posts;
 create policy posts_designer_insert on public.posts for insert to authenticated with check (designer_id = (select auth.uid()) and exists (select 1 from public.client_members cm where cm.client_id = posts.client_id and cm.user_id = (select auth.uid())));
+drop policy if exists posts_designer_update on public.posts;
+create policy posts_designer_update on public.posts for update to authenticated
+using (designer_id = (select auth.uid()) and status in ('draft', 'changes'))
+with check (designer_id = (select auth.uid()) and status in ('submitted', 'changes', 'draft') and approved_value is null and approved_at is null);
+
+create or replace function public.guard_post_updates()
+returns trigger
+language plpgsql
+security invoker
+set search_path = public
+as $$
+begin
+  if private.is_admin() then return new; end if;
+  if old.designer_id <> (select auth.uid()) then raise exception 'not allowed'; end if;
+  if new.designer_id is distinct from old.designer_id
+    or new.client_id is distinct from old.client_id
+    or new.work_type_id is distinct from old.work_type_id
+    or new.title is distinct from old.title
+    or new.format is distinct from old.format
+    or new.scheduled_date is distinct from old.scheduled_date
+    or new.custom_value is distinct from old.custom_value
+    or new.approved_value is distinct from old.approved_value
+    or new.approved_at is distinct from old.approved_at
+  then raise exception 'designers can only edit caption and workflow fields'; end if;
+  if new.status not in ('draft', 'submitted', 'changes') then raise exception 'invalid designer status'; end if;
+  return new;
+end;
+$$;
+revoke all on function public.guard_post_updates() from public, anon, authenticated;
+drop trigger if exists guard_post_updates on public.posts;
+create trigger guard_post_updates before update on public.posts for each row execute procedure public.guard_post_updates();
+
 drop policy if exists assets_admin_all on public.post_assets;
 create policy assets_admin_all on public.post_assets for all to authenticated using (private.is_admin()) with check (private.is_admin());
 drop policy if exists assets_post_access on public.post_assets;
